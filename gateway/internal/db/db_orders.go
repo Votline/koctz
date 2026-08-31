@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
@@ -93,6 +94,9 @@ func (r *OrdersPsql) ProcessPayment(ctx context.Context, eventID, orderID string
 
 	var ord Order
 	if err := tx.GetContext(ctx, &ord, query, args...); err != nil {
+		if errors.Is(err, sql.ErrNoRows) || strings.Contains(err.Error(), "no rows") {
+			return fmt.Errorf("%s: order not found", op)
+		}
 		return fmt.Errorf("%s: get order: %w", op, err)
 	}
 
@@ -116,7 +120,7 @@ func (r *OrdersPsql) ProcessPayment(ctx context.Context, eventID, orderID string
 	}
 
 	if affected == 0 {
-		return tx.Commit()
+		return fmt.Errorf("%s: event already processed", op)
 	}
 
 	if err := updateFn(&ord); err != nil {

@@ -15,16 +15,16 @@ import (
 type OrdersRepository interface {
 	CreateOrder(ctx context.Context, order *Order) error
 	GetOrderByID(ctx context.Context, id string) (*Order, error)
-	ProcessPayment(ctx context.Context, eventID string, orderID string, updateFn func(ord *Order) error) error
+	ProcessPayment(ctx context.Context, eventID, orderID string, updateFn func(ord *Order) error) error
 }
 
 type PaymentRepository interface {
-	RegisterEvent(ctx context.Context, eventID string, orderID string) error
+	RegisterEvent(ctx context.Context, eventID, orderID, status string) error
 }
 
 type KeysRepository interface {
 	GetByRequestID(ctx context.Context, requestID string) (*Key, error)
-	ReserveAndIssueKey(ctx context.Context, sku string, requestID string) (*Key, error)
+	ReserveAndIssueKey(ctx context.Context, sku, requestID string) (*Key, error)
 }
 
 type Order struct {

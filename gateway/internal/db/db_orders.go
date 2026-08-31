@@ -73,7 +73,7 @@ func (r *OrdersPsql) GetOrderByID(ctx context.Context, id string) (*Order, error
 	return &ord, nil
 }
 
-func (r *OrdersPsql) ProcessPayment(ctx context.Context, eventID string, orderID string, updateFn func(ord *Order) error) error {
+func (r *OrdersPsql) ProcessPayment(ctx context.Context, eventID, orderID string, updateFn func(ord *Order) error) error {
 	const op = "OrdersPsql.ProcessPayment"
 
 	tx, err := r.db.BeginTxx(ctx, nil)
@@ -82,7 +82,7 @@ func (r *OrdersPsql) ProcessPayment(ctx context.Context, eventID string, orderID
 	}
 	defer tx.Rollback()
 
-	query, args, err := r.bd.Select("id", "sku", "status", "code", "created_at").
+	query, args, err := r.bd.Select("id", "sku", "status", "COALESCE(code, '') AS code", "created_at").
 		From("orders").
 		Where(sq.Eq{"id": orderID}).
 		Suffix("FOR UPDATE").

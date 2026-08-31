@@ -1,17 +1,43 @@
+[setup]
+URL:http://localhost:8080/nop
+ID:0
+Type:http
+SetVariables:`
+[vars]
+sku:{RANDOM oneof=uuid}
+[\vars]
+`
+Response:`404 page not found
+`
+[\setup]
+
+[http_config]
+URL:http://localhost:8080/api/orders
+Method:POST
+Body:`
+	{
+		"sku": "{VARIABLE key=sku}"
+	}
+`
+ID:1
+Type:http
+Response:`{"order_id":"ord_2b2a4ebe49930149","sku":"2a403e48-cf38-4711-aa81-d418bb09136a","status":"created"}
+`
+[\http_config]
+
 [http_config]
 URL:http://localhost:8080/webhook/payment
 Method:POST
 Body:`
 	{
 		"event_id": "{RANDOM oneof=uuid}",
-		"order_id": "{RANDOM oneof=uuid}",
+		"order_id": "{RESPONSE id=1 json:order_id}",
 		"status": "paid",
 		"amount": {RANDOM oneof=int}
 	}
 `
-ID:0
+ID:2
 Type:http
-Response:`{"status":"ok"}
-`
+Response:{"status":"ok"}
 [\http_config]
 

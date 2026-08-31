@@ -46,7 +46,8 @@ func NewOS(mux *http.ServeMux, log *zap.Logger, ctxTimeout time.Duration) (servi
 
 func (s *ordersservice) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/orders", s.NewOrder)
-	mux.HandleFunc("/api/{id}", s.GetOrder)
+	mux.HandleFunc("/api/reconcile", s.Reconcile)
+	mux.HandleFunc("/api/orders/{id}", s.GetOrder)
 }
 
 func (s *ordersservice) GetName() string {

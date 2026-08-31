@@ -26,6 +26,11 @@ type orderResp struct {
 	Code    string `json:"code,omitempty"`
 }
 
+type reconcileResp struct {
+	TotalPending int        `json:"total_pending"`
+	Orders       []db.Order `json:"orders"`
+}
+
 func (s *ordersservice) NewOrder(w http.ResponseWriter, r *http.Request) {
 	const op = "orders.NewOrder"
 
@@ -96,6 +101,31 @@ func (s *ordersservice) GetOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		http.Error(w, fmt.Sprintf("%s: encode response: %s", op, err.Error()), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (s *ordersservice) Reconcile(w http.ResponseWriter, r *http.Request) {
+	const op = "orders.Reconcile"
+
+	ctx, cancel := context.WithTimeout(r.Context(), s.ctxTimeout)
+	defer cancel()
+
+	pendingOrders, err := s.db.GetPendingOrders(ctx, 100)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("%s: get pending orders: %s", op, err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	resp := reconcileResp{
+		TotalPending: len(pendingOrders),
+		Orders:       pendingOrders,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		http.Error(w, fmt.Sprintf("%s: encode response: %s", op, err.Error()), http.StatusInternalServerError)
 		return

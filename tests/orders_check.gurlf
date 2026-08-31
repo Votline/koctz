@@ -8,16 +8,25 @@ Body:`
 `
 ID:0
 Type:http
-Response:`{"order_id":"ord_d3d10e2fed1e8893","sku":"aea4d4cb-4c5b-4135-8c30-b4006422bbff","status":"created"}
+Response:`{"order_id":"ord_ca341b1bfab5fa80","sku":"STEAM-TOPUP-500","status":"created"}
 `
 [\http_config]
 
 [http_config]
-URL:http://localhost:8080/api/{RESPONSE id=0 json:order_id}
+URL:http://localhost:8080/api/orders/{RESPONSE id=0 json:order_id}
 Method:GET
 ID:1
 Type:http
-Response:`{"order_id":"ord_d3d10e2fed1e8893","sku":"aea4d4cb-4c5b-4135-8c30-b4006422bbff","status":"created"}
+Response:`{"order_id":"ord_ca341b1bfab5fa80","sku":"STEAM-TOPUP-500","status":"created"}
+`
+[\http_config]
+
+[http_config]
+URL:http://localhost:8080/api/reconcile
+Method:GET
+ID:2
+Type:http
+Response:`{"total_pending":0,"orders":null}
 `
 [\http_config]
 

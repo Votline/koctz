@@ -10,6 +10,7 @@ import (
 
 	"koctz/internal/db"
 	"koctz/internal/services"
+	supplierclient "koctz/internal/suppliersclient"
 
 	"go.uber.org/zap"
 )
@@ -21,9 +22,10 @@ type webhooksservice struct {
 	pdb        db.PaymentRepository
 	odb        db.OrdersRepository
 	kdb        db.KeysRepository
+	splc       supplierclient.Client
 }
 
-func NewWBH(mux *http.ServeMux, log *zap.Logger, ctxTimeout time.Duration) (services.Service, error) {
+func NewWBH(mux *http.ServeMux, log *zap.Logger, ctxTimeout time.Duration, supClt supplierclient.Client) (services.Service, error) {
 	const op = "webhooks.NewWBH"
 
 	pdb, err := db.NewPaymentsPsql(log)
@@ -35,6 +37,7 @@ func NewWBH(mux *http.ServeMux, log *zap.Logger, ctxTimeout time.Duration) (serv
 	if err != nil {
 		return nil, fmt.Errorf("%s: create odb: %w", op, err)
 	}
+
 	kdb, err := db.NewKeysPsql(log)
 	if err != nil {
 		return nil, fmt.Errorf("%s: create kdb: %w", op, err)
@@ -47,6 +50,7 @@ func NewWBH(mux *http.ServeMux, log *zap.Logger, ctxTimeout time.Duration) (serv
 		pdb:        pdb,
 		odb:        odb,
 		kdb:        kdb,
+		splc:       supClt,
 	}
 
 	oss.registerRoutes(mux)

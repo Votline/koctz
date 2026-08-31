@@ -5,12 +5,23 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"go.uber.org/zap"
 )
 
-func (c *Client) IssueKey(ctx context.Context, sku, requestID string) (string, error) {
+type IssueRequest struct {
+	SKU       string `json:"sku"`
+	RequestID string `json:"request_id"`
+}
+
+type IssueResponse struct {
+	Code  string `json:"code,omitempty"`
+	Error string `json:"error,omitempty"`
+}
+
+func (c *SuplierClient) IssueKey(ctx context.Context, sku, requestID string) (string, error) {
 	const op = "supplierclient.IssueKey"
 
 	reqBody := IssueRequest{
@@ -32,7 +43,7 @@ func (c *Client) IssueKey(ctx context.Context, sku, requestID string) (string, e
 	return "", fmt.Errorf("%s: both suppliers failed. A err: %v, B err: %v", op, err, errB)
 }
 
-func (c *Client) sendRequest(ctx context.Context, targetURL string, payload IssueRequest) (string, error) {
+func (c *SuplierClient) sendRequest(ctx context.Context, targetURL string, payload IssueRequest) (string, error) {
 	bodyBytes, err := json.Marshal(payload)
 	if err != nil {
 		return "", fmt.Errorf("marshal request: %w", err)
@@ -50,24 +61,30 @@ func (c *Client) sendRequest(ctx context.Context, targetURL string, payload Issu
 	}
 	defer resp.Body.Close()
 
-	var issueResp IssueResponse
-	if err := json.NewDecoder(resp.Body).Decode(&issueResp); err != nil {
-		return "", fmt.Errorf("decode response (status: %d): %w", resp.StatusCode, err)
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read response body: %w", err)
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		if issueResp.Error == "out of stock" {
+		var issueResp IssueResponse
+		if json.Unmarshal(respBytes, &issueResp) == nil && issueResp.Error == "out of stock" {
 			return "", fmt.Errorf("out of stock")
 		}
-		return "", fmt.Errorf("not found error: %s", issueResp.Error)
+		return "", fmt.Errorf("not found error: %s", string(respBytes))
 	}
 
 	if resp.StatusCode >= 500 {
-		return "", fmt.Errorf("server error status: %d", resp.StatusCode)
+		return "", fmt.Errorf("server error status: %d, body: %s", resp.StatusCode, string(respBytes))
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected status code: %d, err: %s", resp.StatusCode, issueResp.Error)
+		return "", fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(respBytes))
+	}
+
+	var issueResp IssueResponse
+	if err := json.Unmarshal(respBytes, &issueResp); err != nil {
+		return "", fmt.Errorf("decode success response: %w, body: %s", err, string(respBytes))
 	}
 
 	if issueResp.Code == "" {

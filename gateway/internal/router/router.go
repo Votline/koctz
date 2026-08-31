@@ -84,22 +84,25 @@ func (s *HTTPServer) registerServices() (http.Handler, error) {
 		return nil, fmt.Errorf("%s: create orders: %w", op, err)
 	}
 
-	wbh, err := webhooks.NewWBH(mux, s.log, ctxTimeout)
-	if err != nil {
-		return nil, fmt.Errorf("%s: create webhooks: %w", op, err)
-	}
-
 	spl, err := suppliers.NewSPL(mux, s.log, ctxTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("%s: create suppliers: %w", op, err)
 	}
 
-	splc, err := supplierclient.NewSPLC("suppliers/a/issue", "suppliers/b/issue", ctxTimeout, s.log)
+	splc, err := supplierclient.NewSPLC(
+		"http://localhost:8080/suppliers/a/issue",
+		"http://localhost:8080/suppliers/b/issue",
+		ctxTimeout, s.log)
 	if err != nil {
 		return nil, fmt.Errorf("%s: create suppliersclient: %w", op, err)
 	}
 
-	s.svcs = append(s.svcs, oss, wbh, spl, splc)
+	wbh, err := webhooks.NewWBH(mux, s.log, ctxTimeout, splc)
+	if err != nil {
+		return nil, fmt.Errorf("%s: create webhooks: %w", op, err)
+	}
+
+	s.svcs = append(s.svcs, oss, wbh, spl)
 
 	return mux, nil
 }

@@ -6,22 +6,14 @@ import (
 	"net/http"
 	"time"
 
-	"koctz/internal/services"
-
 	"go.uber.org/zap"
 )
 
-type IssueRequest struct {
-	SKU       string `json:"sku"`
-	RequestID string `json:"request_id"`
+type Client interface {
+	IssueKey(ctx context.Context, sku, requestID string) (string, error)
 }
 
-type IssueResponse struct {
-	Code  string `json:"code,omitempty"`
-	Error string `json:"error,omitempty"`
-}
-
-type Client struct {
+type SuplierClient struct {
 	name       string
 	httpClient *http.Client
 	urlA       string
@@ -30,8 +22,8 @@ type Client struct {
 	log        *zap.Logger
 }
 
-func NewSPLC(urlA, urlB string, timeout time.Duration, log *zap.Logger) (services.Service, error) {
-	return &Client{
+func NewSPLC(urlA, urlB string, timeout time.Duration, log *zap.Logger) (Client, error) {
+	return &SuplierClient{
 		name: "supplierclient",
 		httpClient: &http.Client{
 			Timeout: timeout,
@@ -41,12 +33,4 @@ func NewSPLC(urlA, urlB string, timeout time.Duration, log *zap.Logger) (service
 		timeout: timeout,
 		log:     log,
 	}, nil
-}
-
-func (c *Client) GetName() string {
-	return c.name
-}
-
-func (c *Client) Close(ctx context.Context) error {
-	return nil
 }

@@ -5,6 +5,7 @@ package webhooks
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"koctz/internal/services"
 
@@ -12,16 +13,18 @@ import (
 )
 
 type webhooksservice struct {
-	name string
-	log  *zap.Logger
+	name       string
+	ctxTimeout time.Duration
+	log        *zap.Logger
 }
 
-func NewWBH(mux *http.ServeMux, log *zap.Logger) (services.Service, error) {
+func NewWBH(mux *http.ServeMux, log *zap.Logger, ctxTimeout time.Duration) (services.Service, error) {
 	const op = "webhooks.NewWBH"
 
 	oss := &webhooksservice{
-		name: "webhooks_service",
-		log:  log,
+		name:       "webhooks_service",
+		ctxTimeout: ctxTimeout,
+		log:        log,
 	}
 
 	oss.registerRoutes(mux)

@@ -3,9 +3,16 @@
 package orders
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
+	"time"
+
+	"koctz/internal/db"
 )
 
 type newOrderReq struct {
@@ -33,10 +40,26 @@ func (s *ordersservice) NewOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	orderID := generateOrderID()
+	order := &db.Order{
+		ID:        orderID,
+		SKU:       req.Sku,
+		Status:    "created",
+		CreatedAt: time.Now().UTC(),
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), s.ctxTimeout)
+	defer cancel()
+
+	if err := s.db.CreateOrder(ctx, order); err != nil {
+		http.Error(w, fmt.Sprintf("%s: create order: %s", op, err.Error()), http.StatusInternalServerError)
+		return
+	}
+
 	resp := orderResp{
-		OrderID: "ord_123",
-		Sku:     req.Sku,
-		Status:  "created",
+		OrderID: order.ID,
+		Sku:     order.SKU,
+		Status:  order.Status,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -50,13 +73,26 @@ func (s *ordersservice) NewOrder(w http.ResponseWriter, r *http.Request) {
 func (s *ordersservice) GetOrder(w http.ResponseWriter, r *http.Request) {
 	const op = "orders.GetOrder"
 
-	id := r.PathValue("id")
+	orderID := r.PathValue("id")
+
+	ctx, cancel := context.WithTimeout(r.Context(), s.ctxTimeout)
+	defer cancel()
+
+	order, err := s.db.GetOrderByID(ctx, orderID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			http.Error(w, fmt.Sprintf("%s: get order: %s", op, err.Error()), http.StatusNotFound)
+			return
+		}
+		http.Error(w, fmt.Sprintf("%s: get order: %s", op, err.Error()), http.StatusInternalServerError)
+		return
+	}
 
 	resp := orderResp{
-		OrderID: id,
-		Sku:     "STEAM-TOPUP-500",
-		Status:  "delivered",
-		Code:    "LFXC-TNCS-BPCD",
+		OrderID: order.ID,
+		Sku:     order.SKU,
+		Status:  order.Status,
+		Code:    order.Code,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -64,4 +100,10 @@ func (s *ordersservice) GetOrder(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("%s: encode response: %s", op, err.Error()), http.StatusInternalServerError)
 		return
 	}
+}
+
+func generateOrderID() string {
+	b := make([]byte, 8)
+	rand.Read(b)
+	return "ord_" + hex.EncodeToString(b)
 }

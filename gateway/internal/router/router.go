@@ -7,6 +7,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"strconv"
+	"time"
 
 	"koctz/internal/orders"
 	"koctz/internal/services"
@@ -72,12 +75,14 @@ func (s *HTTPServer) registerServices() (http.Handler, error) {
 
 	mux := http.NewServeMux()
 
-	oss, err := orders.NewOS(mux, s.log)
+	ctxTimeout := time.Duration(getEnvInt("CONTEXT_TIMEOUT", 10)) * time.Second
+
+	oss, err := orders.NewOS(mux, s.log, ctxTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("%s: create orders: %w", op, err)
 	}
 
-	wbh, err := webhooks.NewWBH(mux, s.log)
+	wbh, err := webhooks.NewWBH(mux, s.log, ctxTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("%s: create webhooks: %w", op, err)
 	}
@@ -85,4 +90,16 @@ func (s *HTTPServer) registerServices() (http.Handler, error) {
 	s.svcs = append(s.svcs, oss, wbh)
 
 	return mux, nil
+}
+
+func getEnvInt(key string, def int) int {
+	valStr := os.Getenv(key)
+	if valStr == "" {
+		return def
+	}
+	valInt, err := strconv.Atoi(valStr)
+	if err != nil {
+		return def
+	}
+	return valInt
 }

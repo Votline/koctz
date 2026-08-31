@@ -4,24 +4,36 @@ package orders
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"time"
 
+	"koctz/internal/db"
 	"koctz/internal/services"
 
 	"go.uber.org/zap"
 )
 
 type ordersservice struct {
-	name string
-	log  *zap.Logger
+	name       string
+	ctxTimeout time.Duration
+	log        *zap.Logger
+	db         db.OrdersRepository
 }
 
-func NewOS(mux *http.ServeMux, log *zap.Logger) (services.Service, error) {
+func NewOS(mux *http.ServeMux, log *zap.Logger, ctxTimeout time.Duration) (services.Service, error) {
 	const op = "orders.NewOS"
 
+	db, err := db.NewOrdersPsql(log)
+	if err != nil {
+		return nil, fmt.Errorf("%s: get orders db: %w", op, err)
+	}
+
 	oss := &ordersservice{
-		name: "orders_service",
-		log:  log,
+		name:       "orders_service",
+		ctxTimeout: ctxTimeout,
+		log:        log,
+		db:         db,
 	}
 
 	oss.registerRoutes(mux)

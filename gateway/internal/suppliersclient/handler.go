@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -29,18 +30,55 @@ func (c *SuplierClient) IssueKey(ctx context.Context, sku, requestID string) (st
 		RequestID: requestID,
 	}
 
-	code, err := c.sendRequest(ctx, c.urlA, reqBody)
+	code, err := c.sendRequestWithRetry(ctx, c.urlA, reqBody)
 	if err == nil {
 		return code, nil
 	}
 	c.log.Warn("supplier A failed, trying fallback supplier B", zap.Error(err), zap.String("request_id", requestID))
 
-	code, errB := c.sendRequest(ctx, c.urlB, reqBody)
+	code, errB := c.sendRequestWithRetry(ctx, c.urlB, reqBody)
 	if errB == nil {
 		return code, nil
 	}
 
 	return "", fmt.Errorf("%s: both suppliers failed. A err: %v, B err: %v", op, err, errB)
+}
+
+func (c *SuplierClient) sendRequestWithRetry(ctx context.Context, targetURL string, payload IssueRequest) (string, error) {
+	maxRetries := 3
+	backoff := 100 * time.Millisecond
+
+	var lastErr error
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		code, err := c.sendRequest(ctx, targetURL, payload)
+		if err == nil {
+			return code, nil
+		}
+
+		lastErr = err
+
+		if err.Error() == "out of stock" {
+			return "", err
+		}
+
+		if attempt == maxRetries {
+			break
+		}
+
+		c.log.Warn("supplier request failed, retrying...",
+			zap.String("url", targetURL),
+			zap.Int("attempt", attempt),
+			zap.Error(err))
+
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(backoff):
+			backoff *= 2
+		}
+	}
+
+	return "", fmt.Errorf("all %d attempts failed: %w", maxRetries, lastErr)
 }
 
 func (c *SuplierClient) sendRequest(ctx context.Context, targetURL string, payload IssueRequest) (string, error) {

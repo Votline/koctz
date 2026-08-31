@@ -14,6 +14,7 @@ import (
 	"koctz/internal/orders"
 	"koctz/internal/services"
 	"koctz/internal/suppliers"
+	supplierclient "koctz/internal/suppliersclient"
 	"koctz/internal/webhooks"
 
 	"go.uber.org/zap"
@@ -93,7 +94,12 @@ func (s *HTTPServer) registerServices() (http.Handler, error) {
 		return nil, fmt.Errorf("%s: create suppliers: %w", op, err)
 	}
 
-	s.svcs = append(s.svcs, oss, wbh, spl)
+	splc, err := supplierclient.NewSPLC("suppliers/a/issue", "suppliers/b/issue", ctxTimeout, s.log)
+	if err != nil {
+		return nil, fmt.Errorf("%s: create suppliersclient: %w", op, err)
+	}
+
+	s.svcs = append(s.svcs, oss, wbh, spl, splc)
 
 	return mux, nil
 }

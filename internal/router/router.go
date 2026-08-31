@@ -84,5 +84,5 @@ func (s *HTTPServer) registerServices() (http.Handler, error) {
 
 	s.svcs = append(s.svcs, oss, wbh)
 
-	return nil, nil
+	return mux, nil
 }

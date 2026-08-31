@@ -33,8 +33,7 @@ func NewWBH(mux *http.ServeMux, log *zap.Logger) (services.Service, error) {
 }
 
 func (s *webhooksservice) registerRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/api/webhooks", nil)
-	mux.HandleFunc("/api/{id}", nil)
+	mux.HandleFunc("/webhook/payment", s.Payment)
 }
 
 func (s *webhooksservice) GetName() string {

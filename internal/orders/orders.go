@@ -33,8 +33,8 @@ func NewOS(mux *http.ServeMux, log *zap.Logger) (services.Service, error) {
 }
 
 func (s *ordersservice) registerRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/api/orders", nil)
-	mux.HandleFunc("/api/{id}", nil)
+	mux.HandleFunc("/api/orders", s.NewOrder)
+	mux.HandleFunc("/api/{id}", s.GetOrder)
 }
 
 func (s *ordersservice) GetName() string {

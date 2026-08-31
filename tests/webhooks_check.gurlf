@@ -1,0 +1,17 @@
+[http_config]
+URL:http://localhost:8080/webhook/payment
+Method:POST
+Body:`
+	{
+		"event_id": "{RANDOM oneof=uuid}",
+		"order_id": "{RANDOM oneof=uuid}",
+		"status": "paid",
+		"amount": {RANDOM oneof=int}
+	}
+`
+ID:0
+Type:http
+Response:`{"status":"ok"}
+`
+[\http_config]
+

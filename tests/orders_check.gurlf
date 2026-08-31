@@ -1,0 +1,23 @@
+[http_config]
+URL:http://localhost:8080/api/orders
+Method:POST
+Body:`
+	{
+		"sku": "{RANDOM oneof=uuid}"
+	}
+`
+ID:0
+Type:http
+Response:`{"order_id":"ord_123","sku":"2fb60e43-2cf0-471a-893a-8ea1597fa6e6","status":"created"}
+`
+[\http_config]
+
+[http_config]
+URL:http://localhost:8080/api/{RESPONSE id=0 json:order_id}
+Method:GET
+ID:1
+Type:http
+Response:`{"order_id":"ord_123","sku":"STEAM-TOPUP-500","status":"delivered","code":"LFXC-TNCS-BPCD"}
+`
+[\http_config]
+

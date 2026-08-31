@@ -20,6 +20,9 @@ CREATE TABLE keys (
 	request_id VARCHAR(128)
 );
 
+CREATE INDEX idx_stock_sku_issued ON stock_keys (sku) WHERE is_issued = false;
+CREATE INDEX idx_products_sku_active ON products (sku) WHERE is_active = true;
+
 INSERT INTO keys (sku, code, status) VALUES
 ('STEAM-TOPUP-500', 'LFXC-TNCS-BPCD', 'available'),
 ('STEAM-TOPUP-500', 'P3EI-W8UO-9B4K', 'available'),

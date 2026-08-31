@@ -6,7 +6,7 @@ services:
       dockerfile: gateway/Dockerfile
     env_file:
       - .env
-      - .env_vars
+      - gateway/.env_vars
     ports:
       - "${GATEWAY_PORT}:${GATEWAY_PORT}"
     depends_on:

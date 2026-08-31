@@ -3,10 +3,14 @@
 package webhooks
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
+
+	"koctz/internal/db"
 )
 
 type webhookReq struct {
@@ -36,14 +40,55 @@ func (s *webhooksservice) Payment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := webhookResp{
-		Status: "ok",
-	}
+	ctx, cancel := context.WithTimeout(r.Context(), s.ctxTimeout)
+	defer cancel()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		http.Error(w, fmt.Sprintf("%s: encode response: %s", op, err.Error()), http.StatusInternalServerError)
+	if err := s.pdb.RegisterEvent(ctx, req.EventID, req.OrderID, req.Status); err != nil {
+		if strings.Contains(err.Error(), "already processed") {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"status":"already processed"}`))
+			return
+		}
+		if strings.Contains(err.Error(), "order not found") {
+			http.Error(w, "order not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, fmt.Sprintf("%s: register event: %s", op, err.Error()), http.StatusInternalServerError)
 		return
 	}
+
+	if err := s.odb.ProcessPayment(ctx, req.EventID, req.OrderID, func(ord *db.Order) error {
+		if ord.Status != "created" {
+			return nil
+		}
+
+		if req.Status == "failed" {
+			ord.Status = "payment_failed"
+			return nil
+		}
+
+		ord.Status = "delivering"
+
+		requestID := fmt.Sprintf("req_%s", ord.ID)
+
+		key, keyErr := s.kdb.ReserveAndIssueKey(ctx, ord.Status, requestID)
+		if keyErr != nil {
+			if strings.Contains(keyErr.Error(), "out of stock") {
+				ord.Status = "out_of_stock"
+				return nil
+			}
+			ord.Status = "delivery_failed"
+			return nil
+		}
+
+		ord.Code = key.Code
+		ord.Status = "delivered"
+		return nil
+	}); err != nil {
+		http.Error(w, fmt.Sprintf("%s: process payment: %s", op, err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status":"ok"}`))
 }

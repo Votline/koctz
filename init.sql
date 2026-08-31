@@ -1,0 +1,21 @@
+CREATE TABLE orders (
+	id VARCHAR(64) PRIMARY KEY,
+	sku VARCHAR(64) NOT NULL,
+	status VARCHAR(32) NOT NULL,
+	code VARCHAR(64),
+	created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE payment_events (
+	event_id VARCHAR(64) PRIMARY KEY,
+	order_id VARCHAR(64) NOT NULL REFERENCES orders(id),
+	status VARCHAR(32) NOT NULL
+);
+
+CREATE TABLE keys (
+	id SERIAL PRIMARY KEY,
+	sku VARCHAR(64) NOT NULL,
+	code VARCHAR(64) NOT NULL UNIQUE,
+	status VARCHAR(32) NOT NULL DEFAULT 'available',
+	request_id VARCHAR(128)
+);

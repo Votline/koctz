@@ -146,3 +146,42 @@ func (r *OrdersPsql) ProcessPayment(ctx context.Context, eventID, orderID string
 
 	return nil
 }
+
+func (r *OrdersPsql) GetPendingOrders(ctx context.Context, limit int) ([]Order, error) {
+	const op = "db_orders.GetPendingOrders"
+
+	query, args, err := r.bd.Select("id", "sku", "status", "COALESCE(code, '') as code", "created_at").
+		From("orders").
+		Where(sq.Eq{"status": []string{"paid", "out_of_stock", "delivery_failed"}}).
+		Limit(uint64(limit)).
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("%s: build query: %w", op, err)
+	}
+
+	var pending []Order
+	if err := r.db.SelectContext(ctx, &pending, query, args...); err != nil {
+		return nil, fmt.Errorf("%s: select: %w", op, err)
+	}
+
+	return pending, nil
+}
+
+func (r *OrdersPsql) UpdateOrderStatus(ctx context.Context, orderID, status, code string) error {
+	const op = "db_orders.UpdateOrderStatus"
+
+	query, args, err := r.bd.Update("orders").
+		Set("status", status).
+		Set("code", code).
+		Where(sq.Eq{"id": orderID}).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("%s: build query: %w", op, err)
+	}
+
+	if _, err := r.db.ExecContext(ctx, query, args...); err != nil {
+		return fmt.Errorf("%s: exec: %w", op, err)
+	}
+
+	return nil
+}

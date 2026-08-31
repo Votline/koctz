@@ -15,6 +15,8 @@ import (
 type OrdersRepository interface {
 	CreateOrder(ctx context.Context, order *Order) error
 	GetOrderByID(ctx context.Context, id string) (*Order, error)
+	GetPendingOrders(ctx context.Context, limit int) ([]Order, error)
+	UpdateOrderStatus(ctx context.Context, orderID, status, code string) error
 	ProcessPayment(ctx context.Context, eventID, orderID string, updateFn func(ord *Order) error) error
 }
 

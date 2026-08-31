@@ -60,6 +60,12 @@ func (s *webhooksservice) Payment(w http.ResponseWriter, r *http.Request) {
 		ord.Status = "paid"
 		return nil
 	}); err != nil {
+		if strings.Contains(err.Error(), "already processed") {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"status":"already processed"}`))
+			return
+		}
+
 		http.Error(w, fmt.Sprintf("%s: process payment: %s", op, err.Error()), http.StatusInternalServerError)
 		return
 	}

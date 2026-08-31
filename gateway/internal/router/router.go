@@ -16,6 +16,7 @@ import (
 	"koctz/internal/suppliers"
 	supplierclient "koctz/internal/suppliersclient"
 	"koctz/internal/webhooks"
+	"koctz/internal/workers"
 
 	"go.uber.org/zap"
 )
@@ -27,9 +28,10 @@ type Server interface {
 }
 
 type HTTPServer struct {
-	srv  *http.Server
-	log  *zap.Logger
-	svcs []services.Service
+	srv    *http.Server
+	log    *zap.Logger
+	svcs   []services.Service
+	reaper workers.Worker
 }
 
 func (s *HTTPServer) Init(log *zap.Logger) error {
@@ -101,6 +103,12 @@ func (s *HTTPServer) registerServices() (http.Handler, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: create webhooks: %w", op, err)
 	}
+
+	s.reaper, err = workers.NewReaper(splc, s.log, ctxTimeout)
+	if err != nil {
+		return nil, fmt.Errorf("%s: create reaper: %w", op, err)
+	}
+	s.reaper.Start()
 
 	s.svcs = append(s.svcs, oss, wbh, spl)
 

@@ -73,7 +73,7 @@ func (r *Reaper) processPendingOrders() {
 	}
 
 	for _, ord := range orders {
-		reqID := fmt.Sprintf("reaper-%s-%d", ord.ID, time.Now().Unix())
+		reqID := fmt.Sprintf("reaper-%s", ord.ID)
 		code, err := r.splc.IssueKey(ctx, ord.SKU, reqID)
 		if err != nil {
 			if strings.Contains(err.Error(), "out of stock") {
@@ -91,4 +91,3 @@ func (r *Reaper) processPendingOrders() {
 		}
 	}
 }
-

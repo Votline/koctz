@@ -57,17 +57,12 @@ func (r *KeysPsql) GetByRequestID(ctx context.Context, requestID string) (*Key, 
 func (r *KeysPsql) ReserveAndIssueKey(ctx context.Context, sku, requestID string) (*Key, error) {
 	const op = "db_keys.ReserveAndIssueKey"
 
-	tx, err := r.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("%s: begin tx: %w", op, err)
-	}
-	defer tx.Rollback()
-
-	subSelect, subArgs, err := r.bd.Select("id").
+	subQuery, subArgs, err := sq.Select("id").
 		From("keys").
 		Where(sq.Eq{"sku": sku, "status": "available"}).
 		Limit(1).
 		Suffix("FOR UPDATE SKIP LOCKED").
+		PlaceholderFormat(sq.Question).
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("%s: build subquery: %w", op, err)
@@ -76,23 +71,19 @@ func (r *KeysPsql) ReserveAndIssueKey(ctx context.Context, sku, requestID string
 	query, args, err := r.bd.Update("keys").
 		Set("status", "issued").
 		Set("request_id", requestID).
-		Where(fmt.Sprintf("id = (%s)", subSelect), subArgs...).
-		Suffix("RETURNING id, sku, code, status, request_id").
+		Where(fmt.Sprintf("id = (%s)", subQuery), subArgs...).
+		Suffix("RETURNING id, sku, code, status, COALESCE(request_id, '') AS request_id").
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("%s: build update query: %w", op, err)
 	}
 
 	var key Key
-	if err := tx.GetContext(ctx, &key, query, args...); err != nil {
+	if err := r.db.GetContext(ctx, &key, query, args...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("%s: out of stock", op)
 		}
 		return nil, fmt.Errorf("%s: reserve key: %w", op, err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("%s: commit tx: %w", op, err)
 	}
 
 	return &key, nil

@@ -19,3 +19,16 @@ CREATE TABLE keys (
 	status VARCHAR(32) NOT NULL DEFAULT 'available',
 	request_id VARCHAR(128)
 );
+
+INSERT INTO keys (sku, code, status) VALUES
+('STEAM-TOPUP-500', 'LFXC-TNCS-BPCD', 'available'),
+('STEAM-TOPUP-500', 'P3EI-W8UO-9B4K', 'available'),
+('STEAM-TOPUP-500', 'FEL3-GUXN-TCCH', 'available'),
+('STEAM-TOPUP-500', 'YPLV-QK2Z-IUS5', 'available'),
+('STEAM-TOPUP-500', '0K9E-P1FR-BY1U', 'available'),
+('KEY-CS2-PRIME',   '5LZV-UQ48-RXCZ', 'available'),
+('KEY-CS2-PRIME',   'X93K-NYAQ-GEC1', 'available'),
+('KEY-CS2-PRIME',   'EIO5-CQT5-35KO', 'available'),
+('KEY-GTA5',        'M58F-GIIR-VJAP', 'available'),
+('KEY-GTA5',        'NU8Y-SWYB-6252', 'available')
+ON CONFLICT DO NOTHING;

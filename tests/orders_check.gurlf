@@ -3,7 +3,7 @@ URL:http://localhost:8080/api/orders
 Method:POST
 Body:`
 	{
-		"sku": "{RANDOM oneof=uuid}"
+		"sku": "STEAM-TOPUP-500"
 	}
 `
 ID:0

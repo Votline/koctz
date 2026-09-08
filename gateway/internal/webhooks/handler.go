@@ -45,19 +45,25 @@ func (s *webhooksservice) Payment(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), s.ctxTimeout)
 	defer cancel()
 
-	var orderSKU string
+	var paymentFailed bool
 	if err := s.odb.ProcessPayment(ctx, req.EventID, req.OrderID, func(ord *db.Order) error {
-		orderSKU = ord.SKU
-		if ord.Status != "created" {
+		if ord.Status != "created" && ord.Status != db.OrderStatusPending {
 			return nil
 		}
 
 		if req.Status == "failed" {
-			ord.Status = "payment_failed"
+			ord.Status = db.OrderStatusFailed
+			paymentFailed = true
+			for i := range ord.Items {
+				ord.Items[i].Status = db.OrderStatusFailed
+			}
 			return nil
 		}
 
 		ord.Status = "paid"
+		for i := range ord.Items {
+			ord.Items[i].Status = "paid"
+		}
 		return nil
 	}); err != nil {
 		if strings.Contains(err.Error(), "already processed") {
@@ -70,41 +76,60 @@ func (s *webhooksservice) Payment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if paymentFailed {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"payment failed"}`))
+		return
+	}
+
 	go func() {
-		bgCtx, bgCancel := context.WithTimeout(context.Background(), 15*time.Second)
+		bgCtx, bgCancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer bgCancel()
 
-		requestID := fmt.Sprintf("req-%s", req.EventID)
-
-		code, err := s.splc.IssueKey(bgCtx, orderSKU, requestID)
-
-		var finalStatus string
-		var finalCode string
-
+		ord, err := s.odb.GetOrderByID(bgCtx, req.OrderID)
 		if err != nil {
-			if strings.Contains(err.Error(), "out of stock") {
-				finalStatus = "out_of_stock"
-			} else {
-				finalStatus = "delivery_failed"
+			s.log.Error("failed to get order for delivery", zap.Error(err))
+			return
+		}
+
+		var totalPaid, totalDelivered float64
+
+		for i := range ord.Items {
+			item := &ord.Items[i]
+			totalPaid += item.Price
+
+			if item.Status == "delivered" {
+				totalDelivered += item.Price
+				continue
 			}
-			s.log.Error("failed to issue key from suppliers",
-				zap.Error(err),
-				zap.String("order_id", req.OrderID))
-		} else {
-			finalStatus = "delivered"
-			finalCode = code
+
+			requestID := fmt.Sprintf("req-%s-%s", req.EventID, item.ID)
+			code, err := s.splc.IssueKey(bgCtx, item.SKU, requestID)
+
+			if err != nil {
+				item.Status = db.ItemStatusRefund
+				s.log.Error("failed to issue key", zap.Error(err), zap.String("item_id", item.ID))
+			} else {
+				item.Status = "delivered"
+				item.Code = code
+				totalDelivered += item.Price
+			}
 		}
 
-		err = s.odb.ProcessPayment(bgCtx, fmt.Sprintf("delivery-%s", req.EventID), req.OrderID, func(ord *db.Order) error {
-			ord.Status = finalStatus
-			ord.Code = finalCode
-			return nil
-		})
-		if err != nil {
-			s.log.Error("failed to update order final status",
-				zap.Error(err),
-				zap.String("order_id", req.OrderID))
+		if totalDelivered == totalPaid {
+			ord.Status = db.OrderStatusCompleted
+		} else if totalDelivered > 0 {
+			ord.Status = db.OrderStatusPartiallyRefund
+		} else {
+			ord.Status = db.OrderStatusFailed
 		}
+
+		if err := s.odb.UpdateOrderDelivery(bgCtx, ord); err != nil {
+			s.log.Error("failed to update order delivery status", zap.Error(err))
+			return
+		}
+
+		s.log.Info("order delivery finalized", zap.String("order_id", ord.ID), zap.String("status", ord.Status))
 	}()
 
 	w.WriteHeader(http.StatusOK)

@@ -35,3 +35,9 @@ Response:`{"total_pending":0,"orders":null}
 `
 [\http_config]
 
+[http_config]
+URL:http://localhost:8080/api/orders/{RESPONSE id=0 json:order_id}?at={RESPONSE id=0 json:created_at}
+Method:GET
+ID:3
+Type:http
+[\http_config]

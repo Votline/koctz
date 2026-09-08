@@ -19,21 +19,28 @@ type ordersservice struct {
 	ctxTimeout time.Duration
 	log        *zap.Logger
 	db         db.OrdersRepository
+	hdb        db.HistoryRepository
 }
 
 func NewOS(mux *http.ServeMux, log *zap.Logger, ctxTimeout time.Duration) (services.Service, error) {
 	const op = "orders.NewOS"
 
-	db, err := db.NewOrdersPsql(log)
+	odb, err := db.NewOrdersPsql(log)
 	if err != nil {
-		return nil, fmt.Errorf("%s: get orders db: %w", op, err)
+		return nil, fmt.Errorf("%s: get orders odb: %w", op, err)
+	}
+
+	hdb, err := db.NewHistoryPsql(log)
+	if err != nil {
+		return nil, fmt.Errorf("%s: get orders hdb: %w", op, err)
 	}
 
 	oss := &ordersservice{
 		name:       "orders_service",
 		ctxTimeout: ctxTimeout,
 		log:        log,
-		db:         db,
+		db:         odb,
+		hdb:        hdb,
 	}
 
 	oss.registerRoutes(mux)

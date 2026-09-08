@@ -22,6 +22,7 @@ type webhooksservice struct {
 	pdb        db.PaymentRepository
 	odb        db.OrdersRepository
 	kdb        db.KeysRepository
+	hdb        db.HistoryRepository
 	splc       supplierclient.Client
 }
 
@@ -43,6 +44,11 @@ func NewWBH(mux *http.ServeMux, log *zap.Logger, ctxTimeout time.Duration, supCl
 		return nil, fmt.Errorf("%s: create kdb: %w", op, err)
 	}
 
+	hdb, err := db.NewHistoryPsql(log)
+	if err != nil {
+		return nil, fmt.Errorf("%s: create hdb: %w", op, err)
+	}
+
 	oss := &webhooksservice{
 		name:       "webhooks_service",
 		ctxTimeout: ctxTimeout,
@@ -50,6 +56,7 @@ func NewWBH(mux *http.ServeMux, log *zap.Logger, ctxTimeout time.Duration, supCl
 		pdb:        pdb,
 		odb:        odb,
 		kdb:        kdb,
+		hdb:        hdb,
 		splc:       supClt,
 	}
 

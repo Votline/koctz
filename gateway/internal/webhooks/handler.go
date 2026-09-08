@@ -58,6 +58,15 @@ func (s *webhooksservice) Payment(w http.ResponseWriter, r *http.Request) {
 				ord.Items[i].Status = db.OrderStatusFailed
 			}
 			return nil
+		} else {
+			if err := s.hdb.SaveEvent(ctx, &db.OrderHistoryEvent{
+				OrderID:   req.OrderID,
+				Status:    "paid",
+				EventType: "paid",
+				Amount:    float64(req.Amount),
+			}); err != nil {
+				s.log.Error("failed to save history", zap.String("op", op), zap.Error(err))
+			}
 		}
 
 		ord.Status = "paid"
@@ -122,6 +131,17 @@ func (s *webhooksservice) Payment(w http.ResponseWriter, r *http.Request) {
 			ord.Status = db.OrderStatusPartiallyRefund
 		} else {
 			ord.Status = db.OrderStatusFailed
+		}
+
+		if ord.Status == db.OrderStatusPartiallyRefund || ord.Status == db.OrderStatusCompleted {
+			if err := s.hdb.SaveEvent(bgCtx, &db.OrderHistoryEvent{
+				OrderID:   ord.ID,
+				Status:    ord.Status,
+				EventType: ord.Status,
+				Amount:    totalDelivered,
+			}); err != nil {
+				s.log.Error("failed to save history", zap.String("op", op), zap.Error(err))
+			}
 		}
 
 		if err := s.odb.UpdateOrderDelivery(bgCtx, ord); err != nil {

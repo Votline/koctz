@@ -34,6 +34,12 @@ type OrdersRepository interface {
 	ProcessPayment(ctx context.Context, eventID, orderID string, updateFn func(ord *Order) error) error
 }
 
+type HistoryRepository interface {
+	SaveEvent(ctx context.Context, event *OrderHistoryEvent) error
+	GetStateAt(ctx context.Context, orderID string, at time.Time) (*OrderHistoryEvent, error)
+	GetReconciliation(ctx context.Context, from, to time.Time) (paid, delivered, refunded float64, isBalanced bool, err error)
+}
+
 type PaymentRepository interface {
 	RegisterEvent(ctx context.Context, eventID, orderID, status string) error
 }
@@ -59,6 +65,15 @@ type OrderItem struct {
 	Status    string    `json:"status" db:"status"`
 	Code      string    `json:"code,omitempty" db:"code"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+
+type OrderHistoryEvent struct {
+	ID        int64     `db:"id" json:"id,omitempty"`
+	OrderID   string    `db:"order_id" json:"order_id,omitempty"`
+	Status    string    `db:"status" json:"status,omitempty"`
+	EventType string    `db:"event_type" json:"event_type,omitempty"`
+	Amount    float64   `db:"amount" json:"amount"`
+	CreatedAt time.Time `db:"created_at" json:"created_at,omitempty"`
 }
 
 type Key struct {

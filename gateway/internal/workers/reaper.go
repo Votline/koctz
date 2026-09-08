@@ -73,21 +73,36 @@ func (r *Reaper) processPendingOrders() {
 	}
 
 	for _, ord := range orders {
-		reqID := fmt.Sprintf("reaper-%s", ord.ID)
-		code, err := r.splc.IssueKey(ctx, ord.SKU, reqID)
-		if err != nil {
-			if strings.Contains(err.Error(), "out of stock") {
-				_ = r.odb.UpdateOrderStatus(ctx, ord.ID, "out_of_stock", "")
-			} else {
-				_ = r.odb.UpdateOrderStatus(ctx, ord.ID, "delivery_failed", "")
+		for _, item := range ord.Items {
+			if item.Status == "delivered" {
+				continue
 			}
-			continue
-		}
 
-		if err := r.odb.UpdateOrderStatus(ctx, ord.ID, "delivered", code); err != nil {
-			r.log.Error("reaper: failed to update delivered status", zap.String("order_id", ord.ID), zap.Error(err))
-		} else {
-			r.log.Info("reaper: successfully retried and delivered order", zap.String("order_id", ord.ID))
+			reqID := fmt.Sprintf("reaper-%s-%s", ord.ID, item.ID)
+			code, err := r.splc.IssueKey(ctx, item.SKU, reqID)
+			if err != nil {
+				status := "delivery_failed"
+				if strings.Contains(err.Error(), "out of stock") {
+					status = "out_of_stock"
+				}
+				_ = r.odb.UpdateOrderStatus(ctx, item.ID, status, "")
+				continue
+			}
+
+			if err := r.odb.UpdateOrderStatus(ctx, item.ID, "delivered", code); err != nil {
+				r.log.Error(
+					"reaper: failed to update delivered status",
+					zap.String("order_id", ord.ID),
+					zap.String("item_id", item.ID),
+					zap.Error(err),
+				)
+			} else {
+				r.log.Info(
+					"reaper: successfully retried and delivered order item",
+					zap.String("order_id", ord.ID),
+					zap.String("item_id", item.ID),
+				)
+			}
 		}
 	}
 }

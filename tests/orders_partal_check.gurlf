@@ -1,0 +1,65 @@
+[http_config]
+URL:http://localhost:8080/api/orders
+Method:POST
+Body:`
+{
+    "items": [
+        {
+            "sku": "STEAM-TOPUP-500",
+            "price": 500.0
+        },
+        {
+            "sku": "STEAM-TOPUP-100",
+            "price": 100.0
+        }
+    ]
+}
+`
+ID:0
+Type:http
+Wait:1s
+Response:`{"order_id":"ord_6351131dd090df73","status":"created","price":600,"items":[{"item_id":"item_10effd8980783cff","sku":"STEAM-TOPUP-500","status":"pending","price":500},{"item_id":"item_365c4a81e4fab6ff","sku":"STEAM-TOPUP-100","status":"pending","price":100}],"created_at":"2026-09-08T07:57:02.567541699Z"}
+`
+[\http_config]
+
+[http_config]
+URL:http://localhost:8080/webhook/payment
+Method:POST
+Body:`
+{
+    "event_id": "evt_{RESPONSE id=0 json:order_id}",
+    "order_id": "{RESPONSE id=0 json:order_id}",
+    "status": "success"
+}
+`
+ID:1
+Type:http
+Wait:1s
+Response:{"status":"ok"}
+[\http_config]
+
+[http_config]
+URL:http://localhost:8080/webhook/payment
+Method:POST
+Body:`
+{
+    "event_id": "evt_{RESPONSE id=0 json:order_id}",
+    "order_id": "{RESPONSE id=0 json:order_id}",
+    "status": "success"
+}
+`
+ID:2
+Type:http
+Wait:1s
+[\http_config]
+
+[http_config]
+URL:http://localhost:8080/api/orders/{RESPONSE id=0 json:order_id}
+Method:GET
+ID:2
+Type:http
+Wait:1s
+Response:`{"order_id":"ord_6351131dd090df73","status":"partially_delivered","price":600,"items":[{"item_id":"item_10effd8980783cff","sku":"STEAM-TOPUP-500","status":"delivered","price":500,"code":"P3EI-W8UO-9B4K"},{"item_id":"item_365c4a81e4fab6ff","sku":"STEAM-TOPUP-100","status":"out_of_stock","price":100}],"created_at":"2026-09-08T07:57:02.567542Z"}
+`
+[\http_config]
+

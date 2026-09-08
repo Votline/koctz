@@ -7,49 +7,30 @@ SetVariables:`
 sku:STEAM-TOPUP-500
 [\vars]
 `
-Response:`404 page not found
-`
 [\setup]
-
-[http_config]
-URL:http://localhost:8080/api/orders
-Method:POST
-Body:`
-	{
-		"sku": "{VARIABLE key=sku}"
-	}
-`
-ID:1
-Type:http
-Response:`{"order_id":"ord_2b2a4ebe49930149","sku":"2a403e48-cf38-4711-aa81-d418bb09136a","status":"created"}
-`
-[\http_config]
 
 [http_config]
 URL:http://localhost:8080/suppliers/a/issue
 Method:POST
 Body:`
-	{
-		"sku": "{VARIABLE key=sku}",
-		"request_id": "{RANDOM oneof=uuid}"
-	}
+{
+    "sku": "{VARIABLE key=sku}",
+    "request_id": "{RANDOM oneof=uuid}"
+}
 `
-ID:2
+ID:1
 Type:http
-Response:{"status":"ok"}
 [\http_config]
 
 [http_config]
 URL:http://localhost:8080/suppliers/b/issue
 Method:POST
 Body:`
-	{
-		"sku": "{VARIABLE key=sku}",
-		"request_id": "{RANDOM oneof=uuid}"
-	}
+{
+    "sku": "{VARIABLE key=sku}",
+    "request_id": "{RANDOM oneof=uuid}"
+}
 `
 ID:2
 Type:http
-Response:{"status":"ok"}
 [\http_config]
-

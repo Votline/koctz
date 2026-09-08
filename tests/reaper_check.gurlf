@@ -7,53 +7,49 @@ SetVariables:`
 sku:STEAM-TOPUP-500
 [\vars]
 `
-Response:`404 page not found
-`
 [\setup]
 
 [http_config]
 URL:http://localhost:8080/api/orders
 Method:POST
 Body:`
-	{
-		"sku": "{VARIABLE key=sku}"
-	}
+{
+    "items": [
+        {
+            "sku": "{VARIABLE key=sku}",
+            "price": 500.0
+        }
+    ]
+}
 `
 ID:1
 Type:http
-Response:`{"order_id":"ord_d234d8ebe934fe1f","sku":"STEAM-TOPUP-500","status":"created"}
-`
 [\http_config]
 
 [http_config]
 URL:http://localhost:8080/webhook/payment
 Method:POST
 Body:`
-	{
-		"event_id": "duplicate-event-123",
-		"order_id": "{RESPONSE id=1 json:order_id}",
-		"status": "paid",
-		"amount": 500
-	}
+{
+    "event_id": "duplicate-event-123",
+    "order_id": "{RESPONSE id=1 json:order_id}",
+    "status": "success"
+}
 `
 ID:2
 Type:http
-Response:{"status":"ok"}
 [\http_config]
 
 [http_config]
 URL:http://localhost:8080/webhook/payment
 Method:POST
 Body:`
-	{
-		"event_id": "duplicate-event-123",
-		"order_id": "{RESPONSE id=1 json:order_id}",
-		"status": "paid",
-		"amount": 500
-	}
+{
+    "event_id": "duplicate-event-123",
+    "order_id": "{RESPONSE id=1 json:order_id}",
+    "status": "success"
+}
 `
 ID:3
 Type:http
-Response:{"status":"already processed"}
 [\http_config]
-

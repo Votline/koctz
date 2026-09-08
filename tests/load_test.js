@@ -1,36 +1,28 @@
 import http from 'k6/http';
-import { check, group } from 'k6';
+import { check } from 'k6';
 
 export const options = {
   vus: 10,
-  duration: '5s',
+  duration: '10s',
 };
 
-let orderId = '';
+export default function () {
+  const orderRes = http.post('http://localhost:8080/api/orders', JSON.stringify({
+    items: [{ sku: 'STEAM-TOPUP-500', price: 500.0 }]
+  }), { headers: { 'Content-Type': 'application/json' } });
 
-export function setup() {
-  const url = 'http://localhost:8080/api/orders';
-  const payload = JSON.stringify({ sku: 'STEAM-TOPUP-500' });
-  const params = { headers: { 'Content-Type': 'application/json' } };
+  if (orderRes.status !== 201) return;
+  const orderId = JSON.parse(orderRes.body).order_id;
 
-  const res = http.post(url, payload, params);
-  const body = JSON.parse(res.body);
-  return { orderId: body.order_id };
-}
+  const eventId = `${Date.now()}-${__VU}-${__ITER}`;
 
-export default function (data) {
-  const url = 'http://localhost:8080/webhook/payment';
-  const payload = JSON.stringify({
-    event_id: 'concurrent-race-test-event',
-    order_id: data.orderId,
-    status: 'paid',
-    amount: 500
-  });
-  const params = { headers: { 'Content-Type': 'application/json' } };
+  const webhookRes = http.post('http://localhost:8080/webhook/payment', JSON.stringify({
+    event_id: eventId,
+    order_id: orderId,
+    status: 'success'
+  }), { headers: { 'Content-Type': 'application/json' } });
 
-  const res = http.post(url, payload, params);
-  
-  check(res, {
+  check(webhookRes, {
     'status is 200': (r) => r.status === 200,
   });
 }

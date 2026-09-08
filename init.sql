@@ -15,6 +15,15 @@ CREATE TABLE order_items (
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+CREATE TABLE order_history (
+	id SERIAL PRIMARY KEY,
+	order_id VARCHAR(64) NOT NULL,
+	status VARCHAR(32) NOT NULL,
+	amount NUMERIC(10, 2) NOT NULL,
+	event_type VARCHAR(32) NOT NULL DEFAULT 'created',
+	created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 CREATE TABLE payment_events (
 	event_id VARCHAR(64) PRIMARY KEY,
 	order_id VARCHAR(64) NOT NULL REFERENCES orders(id),

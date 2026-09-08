@@ -12,11 +12,25 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+const (
+	OrderStatusPending         = "pending"
+	OrderStatusProcessing      = "processing"
+	OrderStatusCompleted       = "completed"
+	OrderStatusPartiallyRefund = "partially_refund"
+	OrderStatusFailed          = "failed"
+
+	ItemStatusPending = "pending"
+	ItemStatusSuccess = "success"
+	ItemStatusFailed  = "failed"
+	ItemStatusRefund  = "refunded"
+)
+
 type OrdersRepository interface {
 	CreateOrder(ctx context.Context, order *Order) error
 	GetOrderByID(ctx context.Context, id string) (*Order, error)
 	GetPendingOrders(ctx context.Context, limit int) ([]Order, error)
-	UpdateOrderStatus(ctx context.Context, orderID, status, code string) error
+	UpdateOrderStatus(ctx context.Context, itemID, status, code string) error
+	UpdateOrderDelivery(ctx context.Context, ord *Order) error
 	ProcessPayment(ctx context.Context, eventID, orderID string, updateFn func(ord *Order) error) error
 }
 
@@ -30,8 +44,18 @@ type KeysRepository interface {
 }
 
 type Order struct {
-	ID        string    `json:"order_id" db:"id"`
+	ID        string      `json:"order_id" db:"id"`
+	Items     []OrderItem `json:"items,omitempty" db:"-"`
+	Status    string      `json:"status" db:"status"`
+	Price     float64     `json:"price" db:"price"`
+	CreatedAt time.Time   `json:"created_at" db:"created_at"`
+}
+
+type OrderItem struct {
+	ID        string    `json:"id" db:"id"`
+	OrderID   string    `json:"order_id" db:"order_id"`
 	SKU       string    `json:"sku" db:"sku"`
+	Price     float64   `json:"price" db:"price"`
 	Status    string    `json:"status" db:"status"`
 	Code      string    `json:"code,omitempty" db:"code"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`

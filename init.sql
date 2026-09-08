@@ -1,8 +1,9 @@
 CREATE TABLE orders (
 	id VARCHAR(64) PRIMARY KEY,
 	sku VARCHAR(64) NOT NULL,
-	status VARCHAR(32) NOT NULL,
+	status VARCHAR(32) NOT NULL DEFAULT 'pending',
 	code VARCHAR(64),
+	price NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -20,8 +21,9 @@ CREATE TABLE keys (
 	request_id VARCHAR(128)
 );
 
-CREATE INDEX idx_stock_sku_issued ON stock_keys (sku) WHERE is_issued = false;
-CREATE INDEX idx_products_sku_active ON products (sku) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_stock_sku_issued ON stock_keys (sku) WHERE is_issued = false;
+CREATE INDEX IF NOT EXISTS idx_products_sku_active ON products (sku) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_order_items_pending ON order_items (order_id) WHERE status = 'pending';
 
 INSERT INTO keys (sku, code, status) VALUES
 ('STEAM-TOPUP-500', 'LFXC-TNCS-BPCD', 'available'),

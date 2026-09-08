@@ -29,6 +29,7 @@ CREATE TABLE keys (
 	request_id VARCHAR(128)
 );
 
+CREATE UNIQUE INDEX idx_order_items_code ON order_items (code) WHERE code IS NOT NULL AND code != '';
 CREATE INDEX IF NOT EXISTS idx_keys_sku_status ON keys (sku) WHERE status = 'available';
 CREATE INDEX IF NOT EXISTS idx_order_items_pending ON order_items (order_id) WHERE status = 'pending';
 

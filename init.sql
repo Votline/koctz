@@ -1,9 +1,17 @@
 CREATE TABLE orders (
 	id VARCHAR(64) PRIMARY KEY,
+	status VARCHAR(32) NOT NULL DEFAULT 'pending',
+	price NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+	created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE order_items (
+	id VARCHAR(64) PRIMARY KEY,
+	order_id VARCHAR(64) NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
 	sku VARCHAR(64) NOT NULL,
+	price NUMERIC(10, 2) NOT NULL,
 	status VARCHAR(32) NOT NULL DEFAULT 'pending',
 	code VARCHAR(64),
-	price NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -21,8 +29,7 @@ CREATE TABLE keys (
 	request_id VARCHAR(128)
 );
 
-CREATE INDEX IF NOT EXISTS idx_stock_sku_issued ON stock_keys (sku) WHERE is_issued = false;
-CREATE INDEX IF NOT EXISTS idx_products_sku_active ON products (sku) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_keys_sku_status ON keys (sku) WHERE status = 'available';
 CREATE INDEX IF NOT EXISTS idx_order_items_pending ON order_items (order_id) WHERE status = 'pending';
 
 INSERT INTO keys (sku, code, status) VALUES

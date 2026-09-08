@@ -15,13 +15,18 @@ Response:`404 page not found
 URL:http://localhost:8080/api/orders
 Method:POST
 Body:`
-	{
-		"sku": "{VARIABLE key=sku}"
-	}
+{
+    "items": [
+        {
+            "sku": "{VARIABLE key=sku}",
+            "price": 500.0
+        }
+    ]
+}
 `
 ID:1
 Type:http
-Response:`{"order_id":"ord_2b2a4ebe49930149","sku":"2a403e48-cf38-4711-aa81-d418bb09136a","status":"created"}
+Response:`{"order_id":"ord_38453216b0d00b70","status":"created","price":500,"items":[{"item_id":"item_55f60c88878c6609","sku":"STEAM-TOPUP-500","status":"pending","price":500}],"created_at":"2026-09-08T09:34:10.164228536Z"}
 `
 [\http_config]
 
@@ -29,12 +34,11 @@ Response:`{"order_id":"ord_2b2a4ebe49930149","sku":"2a403e48-cf38-4711-aa81-d418
 URL:http://localhost:8080/webhook/payment
 Method:POST
 Body:`
-	{
-		"event_id": "{RANDOM oneof=uuid}",
-		"order_id": "{RESPONSE id=1 json:order_id}",
-		"status": "paid",
-		"amount": {RANDOM oneof=int}
-	}
+{
+    "event_id": "{RANDOM oneof=uuid}",
+    "order_id": "{RESPONSE id=1 json:order_id}",
+    "status": "success"
+}
 `
 ID:2
 Type:http

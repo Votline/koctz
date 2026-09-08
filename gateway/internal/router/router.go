@@ -94,7 +94,8 @@ func (s *HTTPServer) registerServices() (http.Handler, error) {
 	splc, err := supplierclient.NewSPLC(
 		"http://localhost:8080/suppliers/a/issue",
 		"http://localhost:8080/suppliers/b/issue",
-		ctxTimeout, s.log)
+		ctxTimeout, s.log,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("%s: create suppliersclient: %w", op, err)
 	}
@@ -110,9 +111,11 @@ func (s *HTTPServer) registerServices() (http.Handler, error) {
 	}
 	s.reaper.Start()
 
+	limiter := NewQueueLimiter(s.log, 60)
+
 	s.svcs = append(s.svcs, oss, wbh, spl)
 
-	return mux, nil
+	return limiter.Middleware(mux), nil
 }
 
 func getEnvInt(key string, def int) int {

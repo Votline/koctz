@@ -13,7 +13,7 @@ Body:`
 `
 ID:0
 Type:http
-Response:`{"order_id":"ord_364dca95d3dc023e","status":"created","price":500,"items":[{"item_id":"itm_1f5cbd5cec89c8d1","sku":"STEAM-TOPUP-500","status":"pending","price":500}],"created_at":"2026-09-08T07:32:13.204420952Z"}
+Response:`{"order_id":"ord_1da0a82ae557505f","status":"created","price":500,"items":[{"item_id":"item_8476e838defd31e2","sku":"STEAM-TOPUP-500","status":"pending","price":500}],"created_at":"2026-09-08T09:34:15.164592094Z"}
 `
 [\http_config]
 
@@ -22,7 +22,7 @@ URL:http://localhost:8080/api/orders/{RESPONSE id=0 json:order_id}
 Method:GET
 ID:1
 Type:http
-Response:`{"order_id":"ord_364dca95d3dc023e","status":"created","price":500,"items":[{"item_id":"itm_1f5cbd5cec89c8d1","sku":"STEAM-TOPUP-500","status":"pending","price":500}],"created_at":"2026-09-08T07:32:13.204421Z"}
+Response:`{"order_id":"ord_1da0a82ae557505f","status":"created","price":500,"items":[{"item_id":"item_8476e838defd31e2","sku":"STEAM-TOPUP-500","status":"pending","price":500}],"created_at":"2026-09-08T09:34:15.164592Z"}
 `
 [\http_config]
 
